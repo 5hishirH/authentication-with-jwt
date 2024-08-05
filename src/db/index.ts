@@ -11,7 +11,7 @@ export const connectDB = async (): Promise<void> => {
       process.env.DATABASE_URL as string
     );
     console.log(
-      `\nMongoDB connected !! DB HOST: ${connectionInstance.connection.host}`
+      `\nMongoDB connected \nDB HOST: ${connectionInstance.connection.host}\n`
     );
   } catch (error: unknown) {
     console.log("MONGODB connection FAILED", error);
