@@ -2,7 +2,7 @@ import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/api-error";
 import { User } from "../db/models/user.model";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
+import { Types } from "mongoose";
 import { uploadOnCloudinary } from "../utils/cloudinary";
 
 /**
@@ -12,7 +12,7 @@ import { uploadOnCloudinary } from "../utils/cloudinary";
  * @throws ApiError if there's an error while generating the tokens.
  */
 const generateAccessAndRefereshTokens = async (
-  userId: mongoose.Types.ObjectId
+  userId: Types.ObjectId
 ): Promise<{ accessToken: string; refreshToken: string }> => {
   try {
     const user = await User.findById(userId);
@@ -21,8 +21,8 @@ const generateAccessAndRefereshTokens = async (
       throw new ApiError(404, "User not found");
     }
 
-    const accessToken: string = user.generateAccessToken();
-    const refreshToken: string = user.generateRefreshToken();
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
 
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
@@ -49,9 +49,9 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const { fullName, email, password } = req.body;
 
-  const existedUser = await User.findOne({ email });
+  const existingUser = await User.findOne({ email });
 
-  if (existedUser) {
+  if (existingUser) {
     throw new ApiError(409, "User with email or username already exists");
   }
 
@@ -86,10 +86,10 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
   // req body -> data
   // username or email
-  //find the user
-  //password check
-  //access and referesh token
-  //send cookie
+  // find the user
+  // password check
+  // access and referesh token
+  // send cookie
 
   const { email, password } = req.body;
 
@@ -120,13 +120,14 @@ const loginUser = asyncHandler(async (req, res) => {
   const options = {
     httpOnly: true,
     secure: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    sameSite: "strict" as "strict",
   };
 
   return res
     .status(200)
-    .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
-    .json(loggedInUser);
+    .json({ accessToken, loggedInUser });
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
@@ -163,20 +164,16 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     req.cookies.refreshToken || req.body.refreshToken;
 
   if (!incomingRefreshToken) {
-    throw new ApiError(401, "unauthorized request");
+    throw new ApiError(401, "Unauthorized");
   }
 
   try {
     const decodedToken = jwt.verify(
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRET!
-    ) as { _id: string } | undefined;
+    ) as { _id: string };
 
-    if (!decodedToken) {
-      throw new ApiError(401, "unauthorized request");
-    }
-
-    const user = await User.findById(decodedToken._id);
+    const user = await User.findById(decodedToken?._id);
 
     if (!user) {
       throw new ApiError(401, "Invalid refresh token");
@@ -189,6 +186,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     const options = {
       httpOnly: true,
       secure: true,
+      sameSite: "strict" as "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     };
 
     const { accessToken, refreshToken: newRefreshToken } =
@@ -196,12 +195,21 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
     return res
       .status(200)
-      .cookie("accessToken", accessToken, options)
       .cookie("refreshToken", newRefreshToken, options)
-      .json({ message: "Access token refreshed" });
-  } catch (error) {
-    console.log(error);
-    throw new ApiError(401, "Invalid refresh token");
+      .json({ accessToken });
+  } catch (error: any) {
+    // Handle specific JWT errors based on their type
+    switch (error.name) {
+      case "TokenExpiredError": // Token has expired
+        throw new ApiError(401, "Refresh token expired");
+      case "JsonWebTokenError": // Token is malformed or invalid
+        throw new ApiError(400, "Invalid refresh token");
+      default: // Handle other types of errors
+        const statusCode = error.statusCode || 500;
+        const message =
+          error.message || "An error occurred during refreshing access token";
+        throw new ApiError(statusCode, message);
+    }
   }
 });
 
