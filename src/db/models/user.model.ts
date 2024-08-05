@@ -30,15 +30,32 @@ const userSchema = new Schema<IUser>({
   },
   createdAt: { type: Date, default: Date.now() },
   updatedAt: { type: Date, default: Date.now() },
-  refreshToken: String,
-  posts: [{ type: Types.ObjectId, ref: "Post" }],
+  refreshToken: { type: String },
+  posts: [{ type: Schema.Types.ObjectId, ref: "Post" }],
 });
 
+// Hash the password before saving the user document
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+  // Check if the password has been modified
+  if (!this.isModified("password")) {
+    // If not, skip the rest of the function
+    return next();
+  }
 
+  // Hash the password using bcrypt with a salt factor of 10
   this.password = await bcrypt.hash(this.password, 10);
+
+  // Call the next middleware function
   next();
+});
+
+// Custom function to modify the JSON serialization process
+userSchema.set("toJSON", {
+  transform: function (doc, ret, options) {
+    delete ret.password; // Remove the password property
+    delete ret.refreshToken; // Remove the refreshToken property
+    return ret;
+  },
 });
 
 userSchema.methods.isPasswordCorrect = async function (password: string) {
@@ -71,14 +88,5 @@ userSchema.methods.generateRefreshToken = function () {
     }
   );
 };
-
-// Custom function to modify the JSON serialization process
-userSchema.set('toJSON', {
-  transform: function (doc, ret, options) {
-    delete ret.password;       // Remove the password property
-    delete ret.refreshToken;   // Remove the refreshToken property
-    return ret;
-  }
-});
 
 export const User = model<IUser>("User", userSchema);
