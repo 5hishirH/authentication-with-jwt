@@ -4,3 +4,11 @@ dist
 .env
 .vercel
 .env*.local
+
+# docker files
+Dockerfile
+.dockerignore
+compose*.yaml
+compose*.yml
+docker-compose*.yaml
+docker-compose*.yml
