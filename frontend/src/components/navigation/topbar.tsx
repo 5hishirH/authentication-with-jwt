@@ -1,12 +1,11 @@
 import { NavLink } from "react-router-dom";
 import { Button } from "../ui/button";
-import useLogout from "@/hooks/useLogout";
-import { usePrivateAxios } from "@/hooks/usePrivateAxios";
-import { testAxios } from "@/lib/axios";
+import { useLogout } from "@/hooks/useLogout";
+import { useAppSelector } from "@/store";
 
 const Topbar = () => {
-  // const logout = useLogout();
-  const privateAxios = usePrivateAxios();
+  const user = useAppSelector((state) => state.auth.userData);
+  const logout = useLogout();
 
   const navLinks = [
     {
@@ -14,26 +13,14 @@ const Topbar = () => {
       link: "/",
     },
     {
-      name: "Sign Up",
-      link: "/sign-up",
-    },
-    {
-      name: "Sign In",
-      link: "/sign-in",
-    },
-    {
       name: "Private",
       link: "/private",
     },
-    {
-      name: "Canary",
-      link: "/canary",
-    },
+    // {
+    //   name: "Canary",
+    //   link: "/canary",
+    // },
   ];
-
-  const handleLogout = async () => {
-    await testAxios.post("/user/logout");
-  }
 
   return (
     <nav className="border-b-2 h-16 flex items-center justify-between 2xl:px-60">
@@ -51,11 +38,26 @@ const Topbar = () => {
         ))}
       </div>
 
-      <div>
-        <Button onClick={handleLogout} variant="destructive">
-          Logout
-        </Button>
-      </div>
+      {user ? (
+        <div className="flex items-center gap-4">
+          <p>{user?.fullName}</p>
+          <Button onClick={logout} variant="destructive">
+            Logout
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <NavLink to="/sign-in">
+            <Button type="button" variant="outline">
+              Sign In
+            </Button>
+          </NavLink>
+
+          <NavLink to="/sign-up">
+            <Button type="button">Sign Up</Button>
+          </NavLink>
+        </div>
+      )}
     </nav>
   );
 };

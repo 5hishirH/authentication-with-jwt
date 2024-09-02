@@ -3,9 +3,8 @@ import { AppDispatch, RootState } from "@/store";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 interface UserState {
-  loading: "idle" | "pending" | "succeeded" | "failed";
+  loading: "pending" | "loggedIn" | "failed" | "loggedOut";
   userData: any | null;
-  accessToken: string;
 }
 
 interface ThrunkApiConfig {
@@ -14,9 +13,8 @@ interface ThrunkApiConfig {
 }
 
 const initialState: UserState = {
-  loading: "idle",
+  loading: "pending",
   userData: null,
-  accessToken: "",
 };
 
 export const fetchUserData = createAsyncThunk<any, void, ThrunkApiConfig>(
@@ -31,9 +29,6 @@ export const accessTokenSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    updateAccessToken: (state, action) => {
-      state.accessToken = action.payload;
-    },
     updateUserData: (state, action) => {
       state.userData = action.payload;
     },
@@ -43,12 +38,10 @@ export const accessTokenSlice = createSlice({
     updateAuth: (state, action) => {
       state.loading = action.payload.loading;
       state.userData = action.payload.userData;
-      state.accessToken = action.payload.accessToken;
     },
-    resetAuth: (state) => {
-      state.loading = initialState.loading;
+    logout: (state) => {
+      state.loading = "loggedOut";
       state.userData = initialState.userData;
-      state.accessToken = initialState.accessToken;
     },
   },
   extraReducers: (builder) => {
@@ -56,7 +49,7 @@ export const accessTokenSlice = createSlice({
       state.loading = "pending";
     });
     builder.addCase(fetchUserData.fulfilled, (state, action) => {
-      state.loading = "succeeded";
+      state.loading = "loggedIn";
       console.log(action.payload);
       state.userData = action.payload;
     });
@@ -67,12 +60,7 @@ export const accessTokenSlice = createSlice({
   },
 });
 
-export const {
-  updateAccessToken,
-  updateUserData,
-  updateLoading,
-  updateAuth,
-  resetAuth,
-} = accessTokenSlice.actions;
+export const { updateUserData, updateLoading, updateAuth, logout } =
+  accessTokenSlice.actions;
 
 export default accessTokenSlice.reducer;

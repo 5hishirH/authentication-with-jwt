@@ -5,17 +5,17 @@ export default axios.create({
   baseURL: server,
 });
 
+// const privateAxios = axios.create({
+//   baseURL: server,
+//   withCredentials: true,
+// });
+
 const privateAxios = axios.create({
   baseURL: server,
   withCredentials: true,
 });
 
-const testAxios = axios.create({
-  baseURL: server,
-  withCredentials: true,
-});
-
-testAxios.interceptors.response.use(
+privateAxios.interceptors.response.use(
   // Handle successful responses
   (response) => response,
   // Handle responses outside of the 2xx range
@@ -45,19 +45,19 @@ testAxios.interceptors.response.use(
 
         try {
           // Attempt to refresh the token
-          const response = await testAxios.post(refreshUrl);
+          const response = await privateAxios.post(refreshUrl);
 
           if (response.status === 200) {
             const newToken = response.data.accessToken;
 
             // Update the Authorization header for the original request
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            
-            testAxios.defaults.headers.common[
+
+            privateAxios.defaults.headers.common[
               "Authorization"
             ] = `Bearer ${newToken}`;
             // Retry the original request with the new token
-            return testAxios(originalRequest);
+            return privateAxios(originalRequest);
           }
         } catch (refreshError) {
           // Handle errors during the refresh token process
@@ -71,4 +71,4 @@ testAxios.interceptors.response.use(
   }
 );
 
-export { privateAxios, testAxios };
+export { privateAxios };

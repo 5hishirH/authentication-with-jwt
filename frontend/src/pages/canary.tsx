@@ -1,11 +1,8 @@
-import { usePrivateAxios } from "@/hooks/usePrivateAxios";
-import { testAxios } from "@/lib/axios";
-import { useQuery } from "@tanstack/react-query";
+import { privateAxios } from "@/lib/axios";
+// import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 const Canary = () => {
-  const privateAxios = usePrivateAxios();
-
   // const { data: userData } = useQuery({
   //   queryKey: ["canary"],
   //   queryFn: async () =>
@@ -15,7 +12,7 @@ const Canary = () => {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    testAxios.get("/user/current-user").then(({ data }) => {
+    privateAxios.get("/user/current-user").then(({ data }) => {
       setUser(data);
     });
   }, []);

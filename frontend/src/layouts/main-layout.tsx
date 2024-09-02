@@ -5,7 +5,10 @@ const MainLayout = () => {
   return (
     <main className="min-h-screen">
       <Topbar />
-      <Outlet />
+
+      <div className="2xl:px-60">
+        <Outlet />
+      </div>
     </main>
   );
 };

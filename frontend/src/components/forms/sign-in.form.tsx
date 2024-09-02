@@ -7,8 +7,10 @@ import { FormEvent } from "react";
 import { privateAxios } from "@/lib/axios";
 import { useToast } from "../ui/use-toast";
 
-import { useAppDispatch } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store";
 import { updateAuth, updateLoading } from "@/features/auth/authSlice";
+import { useLogout } from "@/hooks/useLogout";
+import { ToastAction } from "../ui/toast";
 
 interface IRegisterFormElements extends HTMLFormElement {
   email: HTMLInputElement;
@@ -16,7 +18,9 @@ interface IRegisterFormElements extends HTMLFormElement {
 }
 
 const SignInForm = () => {
+  const { loading, userData: user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
+  const logout = useLogout();
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -26,17 +30,21 @@ const SignInForm = () => {
       privateAxios.post("/user/login", data),
     onSuccess: ({ data }) => {
       console.log(data);
+      privateAxios.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${data.accessToken}`;
+
       dispatch(
         updateAuth({
-          loading: "succeeded",
+          loading: "loggedIn",
           userData: data.loggedInUser,
-          accessToken: data.accessToken,
         })
       );
       navigate("/private");
     },
     onError: (error: any) => {
       console.log(error);
+      dispatch(updateLoading("failed"));
       toast({
         variant: "destructive",
         title: error.response.statusText,
@@ -47,6 +55,8 @@ const SignInForm = () => {
 
   const handleSubmit = (event: FormEvent<IRegisterFormElements>) => {
     event.preventDefault();
+    if (loading === "loggedIn") return;
+
     dispatch(updateLoading("pending"));
     const { email, password } = event.currentTarget;
     mutate({
@@ -79,7 +89,31 @@ const SignInForm = () => {
         </div>
 
         <div className="mt-2">
-          {isPending ? (
+          {loading === "loggedIn" ? (
+            <Button
+              type="button"
+              onClick={() =>
+                toast({
+                  variant: "destructive",
+                  title: "Already logged in to an account",
+                  description:
+                    "Please, sign out first to sign into an another account",
+                  action: (
+                    <ToastAction
+                      type="button"
+                      onClick={logout}
+                      altText="Logout"
+                    >
+                      Logout
+                    </ToastAction>
+                  ),
+                })
+              }
+              className="w-full"
+            >
+              {`Aleady signed as ${user?.fullName}`}
+            </Button>
+          ) : isPending ? (
             <Button type="button" disabled className="w-full">
               <Loader2 className="animate-spin mr-2" size={16} />
               Processing...

@@ -1,19 +1,19 @@
-import { useAppDispatch, useAppSelector } from "@/store";
-import { usePrivateAxios } from "./usePrivateAxios";
+import { useAppDispatch } from "@/store";
+import { privateAxios } from "@/lib/axios";
 import { useCallback } from "react";
-import { resetAuth, updateLoading } from "@/features/auth/authSlice";
+import { logout, updateLoading } from "@/features/auth/authSlice";
 
 const useLogout = () => {
-  const privateAxios = usePrivateAxios();
-
-  const accessToken = useAppSelector((state) => state.auth.accessToken);
   const dispatch = useAppDispatch();
 
-  return async () => {
-    dispatch(updateLoading("pending"));
-    await privateAxios.post("/user/logout");
-    dispatch(resetAuth());
-  };
+  return useCallback(() => {
+    (async () => {
+      dispatch(updateLoading("pending"));
+      await privateAxios.post("/user/logout");
+      privateAxios.defaults.headers.common.Authorization = "";
+      dispatch(logout());
+    })();
+  }, []);
 };
 
-export default useLogout;
+export { useLogout };
