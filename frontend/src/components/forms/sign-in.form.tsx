@@ -4,24 +4,36 @@ import { Input } from "../ui/input";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { FormEvent } from "react";
-import axios from "@/lib/axios";
+import { privateAxios } from "@/lib/axios";
 import { useToast } from "../ui/use-toast";
 
+import { useAppDispatch } from "@/store";
+import { updateAuth, updateLoading } from "@/features/auth/authSlice";
+
 interface IRegisterFormElements extends HTMLFormElement {
-  fullName: HTMLInputElement;
   email: HTMLInputElement;
   password: HTMLInputElement;
 }
 
-const SignUpForm = () => {
+const SignInForm = () => {
+  const dispatch = useAppDispatch();
+
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const { isPending, mutate } = useMutation({
-    mutationFn: (data: { fullName: string; email: string; password: string }) =>
-      axios.post("/user/register", data),
-    onSuccess: () => {
-      navigate("/sign-in");
+    mutationFn: (data: { email: string; password: string }) =>
+      privateAxios.post("/user/login", data),
+    onSuccess: ({ data }) => {
+      console.log(data);
+      dispatch(
+        updateAuth({
+          loading: "succeeded",
+          userData: data.loggedInUser,
+          accessToken: data.accessToken,
+        })
+      );
+      navigate("/private");
     },
     onError: (error: any) => {
       console.log(error);
@@ -35,9 +47,9 @@ const SignUpForm = () => {
 
   const handleSubmit = (event: FormEvent<IRegisterFormElements>) => {
     event.preventDefault();
-    const { fullName, email, password } = event.currentTarget;
+    dispatch(updateLoading("pending"));
+    const { email, password } = event.currentTarget;
     mutate({
-      fullName: fullName.value,
       email: email.value,
       password: password.value,
     });
@@ -46,11 +58,6 @@ const SignUpForm = () => {
   return (
     <main>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div>
-          <h3 className="text-sm font-medium mb-1">Full Name</h3>
-          <Input name="fullName" type="text" required placeholder="Your name" />
-        </div>
-
         <div>
           <h3 className="text-sm font-medium mb-1">Email</h3>
           <Input
@@ -67,7 +74,7 @@ const SignUpForm = () => {
             name="password"
             type="text"
             required
-            placeholder="Enter a strong password"
+            placeholder="Enter your password"
           />
         </div>
 
@@ -79,7 +86,7 @@ const SignUpForm = () => {
             </Button>
           ) : (
             <Button type="submit" className="w-full">
-              Sign Up
+              Sign In
             </Button>
           )}
         </div>
@@ -88,4 +95,4 @@ const SignUpForm = () => {
   );
 };
 
-export default SignUpForm;
+export default SignInForm;

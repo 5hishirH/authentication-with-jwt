@@ -3,6 +3,7 @@ import { ApiError } from "../utils/api-error";
 import { User } from "../db/models/user.model";
 import jwt from "jsonwebtoken";
 import { Types } from "mongoose";
+import { refreshTokenCookieOptions } from "../constants";
 
 /**
  * Generates access and refresh tokens for a user.
@@ -105,16 +106,9 @@ const loginUser = asyncHandler(async (req, res) => {
     "-password -refreshToken"
   );
 
-  const options = {
-    httpOnly: true,
-    secure: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    sameSite: "strict" as "strict",
-  };
-
   return res
     .status(200)
-    .cookie("refreshToken", refreshToken, options)
+    .cookie("refreshToken", refreshToken, refreshTokenCookieOptions)
     .json({ accessToken, loggedInUser });
 });
 
@@ -135,16 +129,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     }
   );
 
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-
-  return res
-    .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
-    .json({ success: true });
+  return res.status(200).clearCookie("refreshToken").json({ success: true });
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
@@ -171,19 +156,12 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       throw new ApiError(401, "Refresh token is expired or used");
     }
 
-    const options = {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict" as "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    };
-
     const { accessToken, refreshToken: newRefreshToken } =
       await generateAccessAndRefereshTokens(user._id);
 
     return res
       .status(200)
-      .cookie("refreshToken", newRefreshToken, options)
+      .cookie("refreshToken", newRefreshToken, refreshTokenCookieOptions)
       .json({ accessToken });
   } catch (error: any) {
     // Handle specific JWT errors based on their type

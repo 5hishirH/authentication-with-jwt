@@ -1,5 +1,5 @@
 import { FormEvent } from "react";
-import { axios } from "@/lib/axios";
+import axios from "@/lib/axios";
 
 export interface IRegisterFormElements extends HTMLFormElement {
   fullName: HTMLInputElement;
